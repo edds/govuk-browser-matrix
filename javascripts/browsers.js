@@ -16,14 +16,9 @@
       browsers.data = [];
     },
     endpoint: function(profileId, startDate, endDate){
-      return "https://www.googleapis.com/analytics/v3/data/ga?"
-      + "ids="+ profileId +"&"
-      + "dimensions=ga:operatingSystem,ga:browser,ga:browserVersion,ga:operatingSystemVersion,ga:" + matrix.manager.getPeriod() + '&'
-      + "metrics=ga:visitors&"
-      + "start-date="+ startDate +"&"
-      + "end-date="+ endDate +"&"
-      + "max-results=5000&"
-      + "sort=-ga:visitors"
+      return "https://www.performance.service.gov.uk/data/govuk/browsers?"
+      + "period=" + matrix.manager.getPeriod() + "&"
+      + "duration=12&group_by=browser&group_by=operatingSystem&group_by=operatingSystemVersion&group_by=browserVersion&collect=visitors%3Asum";
     },
     cleanOS: function(value){
       if(value === 'Windows' || value === 'Macintosh' || value === 'Linux' || value === 'Chrome OS'){
@@ -33,6 +28,7 @@
       }
     },
     addData: function(options){
+      if(options.visits === null){ return; }
       var result = false,
           i, _i;
       for(i=0,_i=browsers.data.length; i<_i; i++){
@@ -56,7 +52,7 @@
       var percent = (value/total) * 100;
       return Math.round(percent * 100)/100;
     },
-    fetchData: function(profileId, callback){
+    fetchData: function(callback){
       var startDate = new Date(), startDateString = '',
           endDate = new Date(), endDateString = '',
           period = matrix.manager.getPeriod(),
@@ -64,14 +60,14 @@
 
       browsers.dates = [];
 
-      if(period === 'nthDay') {
+      if(period === 'day') {
         startDate.setDate(startDate.getDate() - 12);
         for(i=0,_i=12; i<_i; i++){
           tmpDate = new Date(startDate.valueOf());
           tmpDate.setDate(startDate.getDate() + i);
           browsers.dates.push(tmpDate.getDate() + " " +browsers.monthNames[tmpDate.getMonth()]);
         }
-      } else if(period === 'nthWeek') {
+      } else if(period === 'week') {
         dayNumber = (startDate.getDay() + 6) % 7; // day of the week with monday = 0
         startDate.setDate(startDate.getDate() - (dayNumber + 7*12)); // monday 12 weeks ago
         endDate.setDate(endDate.getDate() - (dayNumber + 1)); // most recent sunday
@@ -80,7 +76,7 @@
           tmpDate.setDate(startDate.getDate() + i*7);
           browsers.dates.push(tmpDate.getDate() + " " +browsers.monthNames[tmpDate.getMonth()]);
         }
-      } else if(period === 'nthMonth') {
+      } else if(period === 'month') {
         startDate.setDate(1);
         startDate.setMonth(startDate.getMonth() - 11); // 11 months ago
         for(i=0,_i=12; i<_i; i++){
@@ -90,40 +86,45 @@
         }
       }
 
-      startDateString = startDate.getFullYear() +'-'+ browsers.zeroPad(startDate.getMonth()+1) +'-'+ browsers.zeroPad(startDate.getDate());
-      endDateString = endDate.getFullYear() +'-'+ browsers.zeroPad(endDate.getMonth()+1) +'-'+ browsers.zeroPad(endDate.getDate());
-
-      var endpoint = browsers.endpoint('ga:'+profileId, startDateString, endDateString);
-      matrix.user.apiRequest(endpoint, function(data){
-        browsers.parseAnalyticsData(data, callback);
+      var endpoint = browsers.endpoint();
+      $.ajax({
+        dataType: 'json',
+        url: endpoint,
+        success: function(data){
+          browsers.parseAnalyticsData(data, callback);
+        }
       });
     },
     parseAnalyticsData: function(data, callback){
       browsers.totals = [0,0,0,0, 0,0,0,0, 0,0,0,0];
 
-      data.rows.forEach(function(data,i){
+      data.data.forEach(function(data,i){
         var i, _i, row, found = false;
         for(i=0,_i=matrix.browserMaps[matrix.manager.browserIndex()].length; i<_i; i++){
           row = matrix.browserMaps[matrix.manager.browserIndex()][i];
-          if(row.key.exec(data[1])){
+          if(row.key.exec(data.browser)){
             found = true;
-            browsers.addData({
-              os: browsers.cleanOS(data[0]),
-              browser: row.browser,
-              version: row.version(data),
-              date: parseInt(data[4], 10),
-              visits: data[5]
+            $.each(data.values, function(dayIndex, entry){
+              browsers.addData({
+                os: browsers.cleanOS(data.operatingSystem),
+                browser: row.browser,
+                version: row.version(['', '', data.browserVersion, data.operatingSystemVersion]),
+                date: dayIndex,
+                visits: entry["visitors:sum"]
+              });
             });
             break;
           }
         }
         if(found === false){
-          browsers.addData({
-            os: browsers.cleanOS(data[0]),
-            browser: data[1],
-            version: data[2],
-            date: parseInt(data[4], 10),
-            visits: data[5]
+          $.each(data.values, function(dayIndex, entry){
+            browsers.addData({
+              os: browsers.cleanOS(data.operatingSystem),
+              browser: data.browser,
+              version: data.browserVersion,
+              date: dayIndex,
+              visits: entry["visitors:sum"]
+            });
           });
         }
       });
@@ -187,7 +188,7 @@
           return Math.max.apply(null, b.days) - Math.max.apply(null, a.days);
         });
       }
-      return out;
+      return out.slice(0,75);
     },
     getDays: function(){
       return browsers.dates;

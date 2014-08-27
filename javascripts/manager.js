@@ -6,16 +6,9 @@
 
   var manager = {
     selects: {},
-    profileId: false,
-    propertyId: false,
-    accountId: false,
 
     init: function(){
-      matrix.user.getAccounts(manager.renderAccounts);
       manager.selects = {
-        $accounts: $('#account'),
-        $properties: $('#property'),
-        $profiles: $('#profile'),
         $period: $('#period'),
         $support: $('#support'),
         $combine: $('#combine')
@@ -45,52 +38,11 @@
           });
         }
       });
-    },
-    renderAccounts: function(data){
-      matrix.template(manager.selects.$accounts, 'select-options', { object: 'account', options: data });
-      manager.selects.$accounts
-        .attr('disabled', false)
-        .on('change', function(e){
-          manager.reset();
-          manager.accountId = manager.selects.$accounts.val();
-          if(manager.accountId !== ''){
-            manager.selects.$properties.attr('disabled', 'disabled');
-            manager.propertyId = false;
-            manager.selects.$profiles.attr('disabled', 'disabled');
-            manager.profileId = false;
-            matrix.user.getProperties(manager.accountId, manager.renderProperties);;
-          }
-        });
-    },
-    renderProperties: function(data){
-      matrix.template(manager.selects.$properties, 'select-options', { object: 'property',  options: data });
-      manager.selects.$properties
-        .attr('disabled', false)
-        .on('change', function(e){
-          manager.reset();
-          manager.propertyId = manager.selects.$properties.val();
-          if(manager.propertyId !== ''){
-            manager.selects.$profiles.attr('disabled', 'disabled');
-            manager.profileId = false;
-            matrix.user.getProfiles(manager.accountId, manager.propertyId, manager.renderProfiles);
-          }
-        });
-    },
-    renderProfiles: function(data){
-      matrix.template(manager.selects.$profiles, 'select-options', { object: 'property', options: data });
-      manager.selects.$profiles
-        .attr('disabled', false)
-        .on('change', function(e){
-          manager.reset();
-          manager.profileId = manager.selects.$profiles.val();
-          if(manager.profileId !== ''){
-            manager.loadStats();
-          }
-        });
+      manager.loadStats();
     },
     loadStats: function(){
       matrix.graph.init();
-      matrix.browsers.fetchData(manager.profileId, manager.renderStats);
+      matrix.browsers.fetchData(manager.renderStats);
     },
     renderStats: function(){
       var stats = matrix.browsers.getData(),

@@ -34,9 +34,9 @@
   <div class="page-options">
     <label for="period">Bucket Size:</label>
     <select id="period" name="period">
-      <option value="nthDay">1 day</option>
-      <option value="nthWeek" selected>1 week</option>
-      <option value="nthMonth">1 month</option>
+      <option value="day">1 day</option>
+      <option value="week" selected>1 week</option>
+      <option value="month">1 month</option>
     </select>
 
     <label for="support">Support</label>
@@ -66,31 +66,15 @@
 
 <p class="fork"><a href="http://github.com/edds/browser-matrix">View on GitHub</a></p>
 
-<div class="overlay">
-  <p>
-    Browser Matrix is a tool which lets you use your Google Analytics data to
-    graph percentage share of browsers over time.
-  </p>
-  <p>
-    To do that you will need to give this page access to your Google Analytics
-    account. Don't worry, the details of your account are never sent
-    back to any servers, this is an entirely client-side application.
-  </p>
-  <p><button id="start">Authenticate with Google</button></p>
-</div>
-
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
 <!--[if gt IE 8]><!-->
 <script src="http://d3js.org/d3.v3.min.js"></script>
 <script src="javascripts/vendor/mustache.js"></script>
 
-<script src="javascripts/auth.js"></script>
 <script src="javascripts/browsers.js"></script>
 <script src="javascripts/browser-maps.js"></script>
-<script src="javascripts/cache.js"></script>
 <script src="javascripts/graph.js"></script>
 <script src="javascripts/template.js"></script>
-<script src="javascripts/user.js"></script>
 
 <script src="javascripts/manager.js"></script>
 
@@ -115,12 +99,7 @@
   };
 
   $(function(){
-    $('#start').click(function(){
-      matrix.manager.init();
-    });
-    if(window.location.hash.indexOf('token') > -1){
-      matrix.manager.init();
-    }
+    matrix.manager.init();
   });
 </script>
 <script type="text/mustache" id="select-options">
